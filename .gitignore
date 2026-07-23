@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+prompt_package.txt
+*.docx
+!tests/fixtures/*.docx
