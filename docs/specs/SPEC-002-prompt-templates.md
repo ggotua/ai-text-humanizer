@@ -252,3 +252,42 @@ reliably answers in the expected format.
 - `RewriteFeedback` structure — SPEC-004's iteration loop (SPEC-005) will
   call `build_feedback_from_report` again each iteration with the latest
   `DetectorReport`, and needs to know the shape doesn't change between calls
+
+
+---
+
+## Implementation Status
+
+STATUS: COMPLETE
+Completed: 2026-07-24
+
+Files:
+- src/promptgen/models.py
+- src/promptgen/feedback.py
+- src/promptgen/prompts.py
+- src/promptgen/title_echo.py
+- tests/test_promptgen.py
+- pytest.ini (integration marker registration)
+
+Test Results:
+- 18/18 unit tests passing (fake llm_call, no Ollama required)
+- 1/1 integration test passing against real Ollama + mistral:latest
+  (14.8s runtime, correctly judged an obvious title-echo case as
+  is_echo=True with no parse_warning)
+
+Deviations / Notes:
+- STEP 3 (grammar/style prompt builders) was split into 3a/3b/3c
+  sub-steps after Cline repeatedly stalled on the combined version —
+  implementation-tool limitation, not a spec issue.
+- Switched Cline's model provider from a free-tier OpenRouter-routed
+  DeepSeek to direct DeepSeek API (deepseek-chat) mid-implementation
+  due to persistent free-tier queuing/timeout stalls — no spec or code
+  changes resulted from this switch, confirming the implementer-agnostic
+  design goal of the SDD workflow held up in practice.
+- Integration test initially skipped due to missing `requests` dependency
+  in venv — added to requirements.txt.
+
+Next Phase:
+- Ready for SPEC-004: Langflow Flow Assembly (.txt path) — first spec
+  that actually wires SPEC-001/002 into a running Langflow flow with
+  the two-stage temperature Ollama calls
