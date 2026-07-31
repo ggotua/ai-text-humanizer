@@ -29,15 +29,12 @@ testing standards:
    a Langflow component in isolation requires the running Langflow app
    and its API surface changes between versions.
 
-**Known uncertainty, stated plainly:** Langflow's custom-component API
-(base classes, Input/Output types, exact import paths) may differ from
-what's shown below depending on which Langflow version is actually
-installed (the `lfx` import path replaced `langflow.custom` in Langflow
-1.7, for example — version drift is real and ongoing). Treat section 4's
-code skeleton as a starting point, not gospel — check the installed
-Langflow version's own custom-component quickstart/docs if it doesn't
-load, and adapt. This does not affect the engine layer at all — section
-1 point 1 stays 100% stable regardless of Langflow version.
+**Confirmed 2026-07-24:** installed Langflow version is 1.11.1, using the
+`lfx` import path (the legacy `langflow.custom` path was replaced in
+Langflow 1.7). Section 4's code skeleton is written against this
+confirmed version — residual risk is limited to documentation-vs-actual-
+behavior discrepancies (docs can lag a shipped release), not
+version-family uncertainty.
 
 **Acceptance criteria:**
 - Engine layer: `run_single_pass` fully unit-tested with a fake Ollama call
@@ -129,17 +126,19 @@ def make_ollama_call_fn(model: str = "mistral", host: str = "http://localhost:11
 
 ---
 
-## 4. Langflow Adapter (best-effort skeleton — verify against installed version)
+## 4. Langflow Adapter (verified against installed version 1.11.1)
+
+**Confirmed 2026-07-24:** installed Langflow version is 1.11.1, which uses
+the `lfx` import path (not the legacy `langflow.custom`, which was
+replaced in Langflow 1.7). The skeleton below uses `lfx` imports directly
+— no fallback needed, this is the correct path for the installed version.
 
 ```python
 # custom_components/humanizer_pipeline.py
-#
-# NOTE: verify these imports against your installed Langflow version
-# before assuming this is correct — see section 1's stated uncertainty.
 
-from lfx.custom import Component  # or: from langflow.custom import Component
-from lfx.io import MessageTextInput, DropdownInput, Output  # or langflow.io
-from lfx.schema import Message  # or langflow.schema
+from lfx.custom import Component
+from lfx.io import MessageTextInput, DropdownInput, Output
+from lfx.schema import Message
 
 from src.pipeline.single_pass import run_single_pass, make_ollama_call_fn
 from src.detector.config_loader import load_config
@@ -175,12 +174,12 @@ class HumanizerPipelineComponent(Component):
         return Message(text=result.final_text)
 ```
 
-This is a starting skeleton. If the installed Langflow version rejects
-these imports or input classes, adapt to whatever that version's own
-custom-component template shows (Langflow's own "Custom Component"
-drag-and-drop starter in the Helpers panel is the most reliable
-version-correct reference — copy its structure and adapt inputs/outputs
-to match this component's needs, rather than trusting this snippet blindly).
+If this still fails to load in the Langflow UI despite matching the
+documented 1.11.1 API, check Langflow's own "Custom Component" starter
+(Helpers panel → drag Custom Component → Code) as the definitive
+version-correct reference — this skeleton is verified against
+documentation, not against a live load test, so a small discrepancy is
+still possible.
 
 ---
 
