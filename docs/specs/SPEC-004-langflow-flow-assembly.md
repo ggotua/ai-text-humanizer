@@ -243,3 +243,37 @@ re-run in SPEC-005's loop is for).
   should reference these by name, not redefine its own temperature values
 - `make_ollama_call_fn` — reused as-is, SPEC-005 doesn't need its own
   Ollama-calling logic
+
+
+---
+
+## Implementation Status
+
+STATUS: COMPLETE
+Completed: 2026-08-05
+
+Files:
+- src/pipeline/single_pass.py
+- custom_components/humanizer_pipeline.py
+- tests/test_single_pass.py
+
+Test Results:
+- 6/6 unit tests passing (fake ollama_call)
+- 1/1 integration test passing against real Ollama (97s runtime, two
+  real model calls)
+- Langflow adapter manually verified: component loads, runs, produces
+  different output on a real Ollama-backed run
+
+Deviations / Notes:
+- Langflow requires $env:PYTHONPATH set to project root before launch —
+  see DATA-DECISIONS.md 2026-08-05 entry (stray src/ namespace package
+  in venv/Lib/site-packages)
+- Component code fixed post-generation: Data(text=...) corrected to
+  Data(value=...) per verified live template; file re-saved as clean
+  UTF-8 after encoding corruption in Cline output; icon reverted to
+  "code" per verified template
+
+Next Phase:
+- Ready for SPEC-005: Iteration Loop & Threshold Controller — wraps
+  run_single_pass in a loop, re-checking DetectorReport.passed after
+  each pass
