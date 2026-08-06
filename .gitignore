@@ -5,3 +5,6 @@ __pycache__/
 prompt_package.txt
 *.docx
 !tests/fixtures/*.docx
+
+/test_*.py
+/fix_*.py
