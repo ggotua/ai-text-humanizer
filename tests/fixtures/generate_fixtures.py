@@ -519,6 +519,40 @@ def generate_tracked_change_footnote() -> str:
     return path
 
 
+def generate_realistic_ru_prose() -> str:
+    """Fixture 13: realistic RU prose with an obvious cliché and a footnote.
+
+    Unlike the structural fixtures above (built for extraction testing),
+    this one uses natural Russian sentences containing an obvious cliché
+    ("играет важную роль") plus a footnote reference, so the full
+    extract -> humanize -> reassemble pipeline (SPEC-006 §6's integration
+    test) has realistic input to work with.
+    """
+    body = (
+        _paragraph(
+            _run("Удалённая работа играет важную роль в современном мире. "),
+            _footnote_ref("2"),
+            _run(" Многие компании переходят на гибкий график."),
+        )
+        + _paragraph(
+            _run("Это позволяет сотрудникам лучше совмещать работу и личную жизнь.")
+        )
+        + _paragraph(
+            _run("В итоге растёт эффективность труда и качество жизни.")
+        )
+    )
+    footnotes = (
+        FOOTNOTES_HEAD
+        + _separator_footnote()
+        + _continuation_separator_footnote()
+        + _content_footnote("2", _paragraph(_run("Исследование 2024 года.")))
+        + FOOTNOTES_TAIL
+    )
+    path = _fixture_path("realistic_ru_prose.docx")
+    build_minimal_docx(path, body, footnotes_xml=footnotes)
+    return path
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -538,6 +572,7 @@ if __name__ == "__main__":
         ("fragmented_runs.docx", generate_fragmented_runs),
         ("hyperlink_wrapped_footnote.docx", generate_hyperlink_wrapped_footnote),
         ("tracked_change_footnote.docx", generate_tracked_change_footnote),
+        ("realistic_ru_prose.docx", generate_realistic_ru_prose),
     ]
 
     fixture_dir = FIXTURES_DIR
