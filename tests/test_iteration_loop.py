@@ -21,6 +21,8 @@ from src.detector.config_loader import load_config
 
 from src.pipeline.iteration_loop import (
     IterationResult,
+    check_language_integrity,
+    detect_dominant_script,
     extract_placeholder_token_multiset,
     extract_placeholder_token_set,
     run_iteration_loop,
@@ -492,6 +494,116 @@ def test_run_iteration_loop_against_real_ollama_multi_iteration_case():
     assert result.history, (
         "Expected a non-empty history of attempts, but history was empty."
     )
+
+
+# ===========================================================================
+# Language-integrity helpers (SPEC-005b §3) — detect_dominant_script
+# ===========================================================================
+
+
+def test_detect_dominant_script_cyrillic_text():
+    """A Russian sentence is detected as cyrillic."""
+    text = "Это русский текст для проверки определения доминирующего скрипта."
+    assert detect_dominant_script(text) == "cyrillic"
+
+
+def test_detect_dominant_script_latin_text():
+    """An English sentence is detected as latin."""
+    text = "This is an English sentence used to check the dominant script detection."
+    assert detect_dominant_script(text) == "latin"
+
+
+def test_detect_dominant_script_short_text_returns_unknown():
+    """Very short text (fewer than 20 alphabetic chars) returns unknown."""
+    assert detect_dominant_script("Hi") == "unknown"
+    assert detect_dominant_script("Привет") == "unknown"
+
+
+def test_detect_dominant_script_ignores_placeholder_tokens_and_digits():
+    """Placeholder tokens and digits must not skew the script count.
+
+    The tokens [[FN:3]] and [[EN:7]] contain Latin letters (FN, EN) and
+    digits; if they were counted they'd add Latin characters.  They must be
+    stripped before counting, and digits ignored, so the dominant script is
+    still correctly detected as cyrillic.
+    """
+    text = (
+        "Это [[FN:3]] русский текст [[EN:7]] с цифрами 12345 "
+        "и ещё достаточно букв для проверки скрипта."
+    )
+    assert detect_dominant_script(text) == "cyrillic"
+
+
+# ===========================================================================
+# Language-integrity helpers (SPEC-005b §3) — check_language_integrity
+# ===========================================================================
+
+
+def test_check_language_integrity_passes_when_matching():
+    """Matching language/script returns (True, None)."""
+    ru_text = "Это русский текст для проверки целостности языка в системе."
+    en_text = "This is English text used to verify language integrity checking."
+    assert check_language_integrity(ru_text, "ru") == (True, None)
+    assert check_language_integrity(en_text, "en") == (True, None)
+
+
+def test_check_language_integrity_fails_when_mismatched():
+    """A mismatched language/script returns (False, a warning)."""
+    en_text = "This is English text here obviously and clearly for the test."
+    ok, warning = check_language_integrity(en_text, "ru")
+    assert ok is False
+    assert warning is not None
+    assert "cyrillic" in warning
+    assert "latin" in warning
+
+
+def test_check_language_integrity_passes_on_unknown_short_text():
+    """Short text (unknown script) passes without a warning."""
+    ok, warning = check_language_integrity("Hi", "ru")
+    assert ok is True
+    assert warning is None
+
+
+# ===========================================================================
+# run_iteration_loop — language-integrity logic (SPEC-005b §3)
+# ===========================================================================
+
+
+def test_run_iteration_loop_stops_on_language_drift_returns_pre_corruption_text():
+    """A fully-English pass when Russian is expected stops the loop.
+
+    Simulates the real bug found in SPEC-006's manual review: the model
+    translated a Russian document into English.  The fake ``ollama_call``
+    returns fully-English text on its first call.  The loop must stop
+    immediately, return the original Russian input unchanged, and warn
+    about the language drift.
+    """
+    ru_input = (
+        "Это русский текст для проверки языка. Он содержит достаточно "
+        "букв для определения доминирующего скрипта."
+    )
+    en_output = (
+        "This is fully English text that has drifted away from the "
+        "original Russian language entirely."
+    )
+
+    def ollama_call(prompt, temperature):
+        return en_output
+
+    fake = _make_fake_single_pass([(False, ["a"])])
+
+    with mock.patch(
+        "src.pipeline.iteration_loop.run_single_pass", fake
+    ):
+        result = run_iteration_loop(
+            ru_input, "ru", ollama_call, _FakeDetectorConfig(), max_iterations=3
+        )
+
+    assert result.passed is False
+    assert result.final_text == ru_input
+    assert result.iterations_completed == 0
+    assert len(result.history) == 1
+    assert "language" in result.warning.lower()
 
 
 

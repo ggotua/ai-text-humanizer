@@ -36,6 +36,28 @@ def _placeholder_rule(language: str) -> str:
     return _PLACEHOLDER_RULE_EN
 
 
+# ---------------------------------------------------------------------------
+# Anti-translation rule (SPEC-005b §2, verbatim strings)
+# ---------------------------------------------------------------------------
+
+_ANTI_TRANSLATION_RULE_RU: str = (
+    "Отвечай СТРОГО на русском языке. Ни в коем случае не переводи текст"
+    " на другой язык — только переписывай или исправляй его, сохраняя русский."
+)
+
+_ANTI_TRANSLATION_RULE_EN: str = (
+    "Respond STRICTLY in English. Under no circumstances translate the"
+    " text into another language — only rewrite or correct it, keeping it in English."
+)
+
+
+def _anti_translation_rule(language: str) -> str:
+    """Return the anti-translation rule text matching *language*."""
+    if language == "ru":
+        return _ANTI_TRANSLATION_RULE_RU
+    return _ANTI_TRANSLATION_RULE_EN
+
+
 def _text_heading(language: str) -> str:
     """Return the heading for the input-text section."""
     if language == "ru":
@@ -77,6 +99,8 @@ def build_grammar_pass_prompt(text: str, language: str) -> str:
 
     parts = [
         instruction,
+        "",
+        _anti_translation_rule(language),
         "",
         _placeholder_rule(language),
         "",
@@ -128,6 +152,10 @@ def build_style_pass_prompt(
             "Rewrite the text, addressing the issues listed below."
         )
 
+    parts.append("")
+
+    # --- Anti-translation rule (SPEC-005b §2) ---
+    parts.append(_anti_translation_rule(language))
     parts.append("")
 
     # --- Placeholder-token rule ---

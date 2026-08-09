@@ -81,6 +81,67 @@ def extract_placeholder_token_multiset(text: str) -> Counter:
     return Counter(match.group() for match in _PLACEHOLDER_RE.finditer(text))
 
 
+def detect_dominant_script(text: str) -> str:
+    """
+    Returns "cyrillic", "latin", or "unknown" based on which script's
+    letters dominate the alphabetic characters in text. Cheap heuristic
+    (character-class counting, not a real language detector) —
+    sufficient to catch a full RU<->EN drift, the only failure mode
+    observed so far. Non-alphabetic characters (digits, punctuation,
+    whitespace, placeholder tokens) are ignored in the count. Returns
+    "unknown" if there are fewer than 20 alphabetic characters total
+    (too short to judge reliably — avoid false positives on short text).
+    """
+    # Strip placeholder tokens before counting, reusing the shared
+    # compiled pattern (same extract-and-strip approach as the rest of
+    # this module) so token text never skews the script count.
+    stripped = _PLACEHOLDER_RE.sub("", text)
+
+    cyrillic = 0
+    latin = 0
+    for ch in stripped:
+        code = ord(ch)
+        if 0x0400 <= code <= 0x04FF:
+            # Cyrillic block (U+0400-U+04FF).
+            cyrillic += 1
+        elif ("a" <= ch <= "z") or ("A" <= ch <= "Z"):
+            # ASCII Latin letters (sufficient for RU vs EN distinction).
+            latin += 1
+
+    total = cyrillic + latin
+    if total < 20:
+        return "unknown"
+    if cyrillic > latin:
+        return "cyrillic"
+    if latin > cyrillic:
+        return "latin"
+    # Equal counts — neither script dominates; too ambiguous to judge.
+    return "unknown"
+
+
+def check_language_integrity(text: str, expected_language: str) -> tuple[bool, str | None]:
+    """
+    expected_language is "ru" or "en". Maps to the script that should
+    dominate: "ru" -> "cyrillic", "en" -> "latin". Calls
+    detect_dominant_script(text); if the result is "unknown" (too short
+    to judge), returns (True, None) — do not flag short text as a
+    false positive. If the dominant script doesn't match what
+    expected_language implies, returns (False, a warning message naming
+    the expected vs detected script). Otherwise (True, None).
+    """
+    expected_script = "cyrillic" if expected_language == "ru" else "latin"
+    dominant = detect_dominant_script(text)
+    if dominant == "unknown":
+        return (True, None)
+    if dominant != expected_script:
+        return (
+            False,
+            f"Expected {expected_script} script (language={expected_language}), "
+            f"detected {dominant}.",
+        )
+    return (True, None)
+
+
 def run_iteration_loop(
     text: str,
     language: str,
@@ -141,6 +202,19 @@ def run_iteration_loop(
                 warning=(
                     f"Placeholder token integrity broken at iteration {i+1}: "
                     f"before={dict(tokens_before)}, after={dict(tokens_after)}. "
+                    f"Returning last known-good text from before this iteration."
+                ),
+            )
+
+        lang_ok, lang_warning = check_language_integrity(result.final_text, language)
+        if not lang_ok:
+            return IterationResult(
+                final_text=current_text,  # same pre-corruption pattern as token integrity
+                passed=False,
+                iterations_completed=i,
+                history=tuple(history),
+                warning=(
+                    f"Language integrity broken at iteration {i+1}: {lang_warning} "
                     f"Returning last known-good text from before this iteration."
                 ),
             )
