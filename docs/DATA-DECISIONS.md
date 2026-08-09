@@ -26,3 +26,18 @@ Risk:       Anyone launching Langflow without setting PYTHONPATH first
 Mitigation: Document the required launch sequence; consider investigating
             and removing the stray src/ package in site-packages later
             (not urgent — PYTHONPATH workaround is stable).
+## 2026-08-XX: Mistral translated RU document to EN during humanization
+Decision:   Added explicit anti-translation instruction to prompts
+            (SPEC-002) plus automated language-integrity check in the
+            iteration loop (SPEC-005b), mirroring the existing
+            placeholder-token integrity pattern.
+Reason:     Found via manual Word inspection of SPEC-006's round-trip
+            output — the ENTIRE document was translated to English
+            despite language="ru" passed throughout. No automated test
+            caught this because none checked output language, only
+            structure/tokens. Confirms the value of the mandatory
+            human-eyeball check in SPEC-006's PROMPT — this is exactly
+            the kind of failure automated tests miss.
+Risk:       Heuristic script-detection check (Cyrillic vs Latin ratio)
+            is coarse — won't catch subtler issues like code-switching
+            mid-sentence, only full document-level drift.
