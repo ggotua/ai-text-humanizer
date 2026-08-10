@@ -223,7 +223,7 @@ class TestMakeOllamaCallFn:
             "model": "test-model",
             "prompt": "some prompt",
             "stream": False,
-            "options": {"temperature": 0.5},
+            "options": {"temperature": 0.5, "num_ctx": 16384},
         }
         assert call_kwargs.kwargs["timeout"] == 60
 

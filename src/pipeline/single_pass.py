@@ -55,7 +55,7 @@ def make_ollama_call_fn(
             "model": model,
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": temperature},
+            "options": {"temperature": temperature, "num_ctx": 16384},
         }
         resp = requests.post(
             f"{host}/api/generate",
