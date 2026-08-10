@@ -1,7 +1,7 @@
-"""Single-pass pipeline engine (SPEC-004 §3).
+"""Single-pass pipeline engine (SPEC-004 В§3).
 
 This module contains the pure-Python orchestration layer for one
-grammar-pass + style-pass cycle.  It has no Langflow dependency — the
+grammar-pass + style-pass cycle.  It has no Langflow dependency вЂ” the
 Langflow adapter in ``custom_components/humanizer_pipeline.py`` is a thin
 wrapper around ``run_single_pass`` (implemented in a later step).
 """
@@ -33,14 +33,14 @@ class SinglePassResult:
 def make_ollama_call_fn(
     model: str = "mistral",
     host: str = "http://localhost:11434",
-    timeout: int = 60,
+    timeout: int = 300,
 ) -> Callable[[str, float], str]:
     """Return a closure suitable for use as ``ollama_call`` in run_single_pass.
 
     The returned function POSTs to ``{host}/api/generate`` with the given
     model, the prompt, ``stream=False``, and
     ``options={"temperature": temperature}``.  Raises
-    ``requests.exceptions.RequestException`` subtypes on failure — does not
+    ``requests.exceptions.RequestException`` subtypes on failure вЂ” does not
     swallow them (per the "propagate, don't catch" rule above).
 
     ``timeout=60`` (not 30, unlike SPEC-002's test helper) because a full
@@ -77,17 +77,17 @@ def run_single_pass(
 ) -> SinglePassResult:
     """Run one grammar-pass + style-pass cycle per SPEC-004 section 2's sequence.
 
-    ``ollama_call`` takes ``(prompt, temperature)`` -> response text —
+    ``ollama_call`` takes ``(prompt, temperature)`` -> response text вЂ”
     temperature is passed explicitly here (unlike SPEC-002's
     ``judge_title_echo``, which didn't need temperature control since it's
     a deterministic yes/no judgment call).
 
     Grammar pass uses ``GRAMMAR_PASS_TEMPERATURE`` (0.3).  Style pass uses
-    ``STYLE_PASS_TEMPERATURE`` (0.8) — both hardcoded as named module-level
+    ``STYLE_PASS_TEMPERATURE`` (0.8) вЂ” both hardcoded as named module-level
     constants, not magic numbers inline, so SPEC-005 or future tuning can
     reference/override them by name.
 
-    Does not catch exceptions from ``ollama_call`` — connection/timeout
+    Does not catch exceptions from ``ollama_call`` вЂ” connection/timeout
     errors propagate to the caller, consistent with SPEC-002 section 6's
     pattern (the orchestration layer, i.e. whatever calls ``run_single_pass``,
     decides retry/timeout policy).
