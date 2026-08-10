@@ -41,3 +41,28 @@ Reason:     Found via manual Word inspection of SPEC-006's round-trip
 Risk:       Heuristic script-detection check (Cyrillic vs Latin ratio)
             is coarse — won't catch subtler issues like code-switching
             mid-sentence, only full document-level drift.
+## 2026-08-10: Discovered second citation format not covered by SPEC-003/006
+Decision:   Real SIDA/TVNAIA drafts use TWO different citation mechanisms
+            depending on the document: (1) native Word footnotes
+            (w:footnoteReference — what SPEC-003/005/006 currently
+            protect), and (2) manually-typed Unicode superscript digit
+            characters (¹²³...) inline in body text, with a consolidated
+            bibliography at the document's end, NO footnotes.xml/
+            endnotes.xml present at all.
+Reason:     Found via real-document testing (Belarus_Chapter_Draft.docx,
+            5000 words, 117 superscript citation markers, zero native
+            footnoteReference elements). This is not an edge case for
+            this document — it is the ONLY citation mechanism present,
+            at a density of roughly 1 marker per 320 words.
+Risk:       The entire placeholder-token integrity architecture
+            (SPEC-003 extraction, SPEC-005 multiset checks, SPEC-006
+            reassembly) provides ZERO protection for superscript-digit
+            citations — they are currently treated as ordinary text
+            characters, with no guarantee against loss/duplication/
+            reordering during LLM rewriting.
+Next step:  SPEC-007 needed — extend the placeholder-token system to
+            also detect and protect Unicode superscript-digit citation
+            markers (⁰¹²³⁴⁵⁶⁷⁸⁹), parallel to but independent from
+            SPEC-003's OOXML footnote extraction. Both citation formats
+            must be supported since real documents use either one
+            depending on the source.
